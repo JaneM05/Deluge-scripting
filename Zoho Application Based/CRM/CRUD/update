@@ -1,0 +1,17 @@
+recordId = 123;
+
+// Basic 
+
+// Fields to be updated mapping
+updateMap = Map();
+updateMap.put("Lead_Status", "Contacted");
+
+zoho.crm.updateRecord("Leads", recordId, updateMap);
+
+// Advance
+
+optionalMap = Map();
+optionalMap.put("trigger", {"workflow"});
+connection = "sample_conn";
+
+zoho.crm.updateRecord("Leads", recordId, updateMap, optionalMap, connection); 
