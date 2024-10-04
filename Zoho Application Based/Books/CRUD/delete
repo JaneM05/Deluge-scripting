@@ -1,0 +1,9 @@
+orgId = "848095884";
+recordId = "4954791000000196096"
+
+delete = invokeUrl
+[
+	url: "https://www.zohoapis.com/books/v3/salesorders/" + recordId + "?organization_id=" + orgId
+	type: DELETE
+	connection: "zbooks_conn" // with delete scope
+];
