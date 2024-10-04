@@ -1,0 +1,34 @@
+// Within the Creator app 
+
+create = insert into Account
+[
+    Account_Name = "Test Account"
+    Website = "https://www.test.com"
+    Address_Information.address_line_1 = "Steno St"
+    Address_Information.district_city = "Veco"
+    Address_Information.state_province = "Scyte"
+    Address_Information.postal_Code = "1962"
+    Address_Information.country = "Northern Earth"
+];
+
+// Outside the Creator app
+
+ownerName = "owner-username";
+appLinkName = "application-name";
+formName = "Account";
+
+createMap = Map();
+optionalMap = Map();
+addressMap = Map();
+
+addressMap.put("address_line_1", "Steno St");
+addressMap.put("district_city", "Veco");
+addressMap.put("state_province", "Scyte");
+addressMap.put("postal_code", "1962");
+addressMap.put("country", "Northern Earth");
+
+createMap.put("Account_Name", "Test Account");
+createMap.put("Website", { "url": "https://www.test.com" });
+createMap.put("Address_Information", addressMap);
+
+zoho.creator.createRecord(ownerName, appLinkName, formName, createMap, optionalMap, "zcreator_conn");
