@@ -1,0 +1,24 @@
+orgId = "848095884";
+customerId = 4954791000000146789;
+itemIds = {"51231923912382","51231923912389"};
+createMap = Map();
+lineItems = List();
+customFields = List();
+createMap.put("customer_id",customerId);
+for each  itemId in itemIds
+{
+	lineItems.add({"item_id":itemId,"rate":123,"quantity":123});
+}
+createMap.put("line_items",lineItems);
+customFields.add({"label":"cf1","value":"cf cf1 value"});
+customFields.add({"label":"cf2","value":"cf cf2 value"});
+createMap.put("custom_fields",customFields);
+
+// Basic
+
+zoho.books.createRecord("salesorders", orgId, createMap);
+
+// Advance 
+
+connection = "sample_conn";
+zoho.books.createRecord("salesorders", orgId, createMap, connection); 
