@@ -1,0 +1,14 @@
+recordId = 123;
+
+// Module and record to be deleted mapping
+deleteMap = Map();
+deleteMap = {"module":"Leads","id":recordId};
+zoho.crm.invokeConnector("crm.delete", deleteMap);
+
+// Advance
+
+optionalMap = Map();
+optionalMap.put("trigger", {"workflow"});
+connection = "sample_conn";
+
+zoho.crm.invokeConnector("crm.delete", deleteMap, optionalMap, connection); 
