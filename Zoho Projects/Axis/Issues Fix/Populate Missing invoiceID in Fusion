@@ -1,0 +1,80 @@
+void RecordFixer.Update_InvoiceId()
+{
+	recData = List();
+	recNoRecord = List();
+	// get all records that has missing invoice id based on Transaction type.
+	get_Approve_FR_records = All_Approved_Fund_Request_Form[ID != 0 && Push_Status == "Submitted to Fusion" && Status != "Deleted" && Status == "Invoice Approved" && Transaction_Type == "Supplier Payment" && Paid_Status == "Paid"];
+	for each  Approve_FR_record in get_Approve_FR_records
+	{
+		if(Approve_FR_record.Fusion_Sync_Log.isEmpty() || Approve_FR_record.Fusion_Sync_Log.isNull())
+		{
+			InvoiceNumber = Approve_FR_record.Invoice_Number;
+			getInvoiceNumber = InvoiceNumber;
+			requestInvoiceProdUrl = "https://prod-oic-idss5dp9fm2b-ia.integration.ocp.oraclecloud.com/ic/api/integration/v1/flows/rest/INT103_AP_INVOICES/1.0/invoices";
+			requestInvoicetUATUrl = "https://uat-oic-idss5dp9fm2b-ia.integration.ocp.oraclecloud.com/ic/api/integration/v1/flows/rest/INT103_AP_INVOICES/1.0/invoices";
+			auth_url = "https://idcs-984be096339842eaa3ed849c1c2e3665.identity.oraclecloud.com/oauth2/v1/token";
+			header_data = Map();
+			header_data.put("Authorization","Basic YTRlZjBhYzlmYjc0NDk1MWEzZGY2YWVlNmI0ZTc1NGQ6YTBjZjViNDQtODczYS00MjE5LWEyNTMtNGQ5OWZjMWVjMTUy");
+			header_data.put("Content-Type","application/x-www-form-urlencoded");
+			params = Map();
+			params.put("grant_type","password");
+			params.put("scope","https://D32DF03F3A9741C9A9CE45BC43DBEF47.integration.ocp.oraclecloud.com:443/ic/api/");
+			params.put("username","int-axis");
+			params.put("password","Y95!$&oru98FdskpA");
+			responseToken = invokeurl
+			[
+				url :auth_url
+				type :POST
+				parameters:params
+				headers:header_data
+			];
+			if(!responseToken.IsEmpty() || !responseToken.IsNull() && !InvoiceNumber.isEmpty() || !InvoiceNumber.isNull())
+			{
+				access_token = responseToken.get("access_token");
+				if(!access_token.isEmpty())
+				{
+					requestParam = Map();
+					requestParam.put("q","InvoiceNumber=" + getInvoiceNumber);
+					requestHeader = Map();
+					requestHeader.put("Authorization","Bearer " + access_token);
+					fusionResponse = invokeurl
+					[
+						url :requestInvoiceProdUrl
+						type :GET
+						parameters:requestParam
+						headers:requestHeader
+					];
+					if(!fusionResponse.get("items").isEmpty() && !fusionResponse.get("items").isNull())
+					{
+						fusionItem = fusionResponse.get("items").get(0);
+						fusionInvoiceNumber = fusionItem.get("InvoiceNumber");
+						fusionInvoiceId = fusionItem.get("InvoiceId");
+						data = fusionInvoiceId + "-" + fusionInvoiceNumber + "<br>";
+						recData.add(data);
+						//this will update the missing value of the Invoice Id from Fusion Field
+						Approve_FR_record.Fusion_Sync_Log=fusionInvoiceId;
+					}
+					else
+					{
+						messageError = getInvoiceNumber + "<br>";
+						recNoRecord.add(messageError);
+					}
+				}
+			}
+		}
+	}
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"xeiranime05.com@gmail.com"
+		subject :"populate missing invoice id"
+		message :recData
+	]
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"xeiranime05.com@gmail.com"
+		subject :"These invoice number does not exist in fusion"
+		message :recNoRecord
+	]
+}
