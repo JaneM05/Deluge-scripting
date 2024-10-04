@@ -1,0 +1,29 @@
+// Within the Creator app 
+
+record = Account[ID == 4597916000000078026];
+record.Account_Name = "Account Test";
+record.Website = "https://www.example.com";
+record.Address_Information.address_line_1 = "FOF St.";
+
+// Outside the Creator app
+
+ownerName = "owner-username";
+appLinkName = "application-name";
+formReportName = "All_Accounts";
+recordId = 4597916000000078026;
+
+updateMap = Map();
+optionalMap = Map();
+addressMap = Map();
+
+addressMap.put("address_line_1", "Steno St");
+addressMap.put("district_city", "Veco");
+addressMap.put("state_province", "Scyte");
+addressMap.put("postal_code", "1962");
+addressMap.put("country", "Northern Earth");
+
+updateMap.put("Account_Name", "Test Account");
+updateMap.put("Website", { "url": "https://www.test.com" });
+updateMap.put("Address_Information", addressMap);
+
+zoho.creator.updateRecord(ownerName, appLinkName, formReportName, recordId, updateMap, optionalMap, "zcreator_conn");
