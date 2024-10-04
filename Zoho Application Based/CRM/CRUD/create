@@ -1,0 +1,14 @@
+createMap = Map();
+createMap.put("Last_Name", "Herschel");
+createMap.put("Company", "My CO.");
+
+// Basic
+
+zoho.crm.createRecord("Leads", createMap);
+
+// Advance 
+
+optionalMap = Map();
+optionalMap.put("trigger", {"workflow"});
+connection = "sample_conn";
+zoho.crm.createRecord("Leads", createMap, optionalMap, connection); 
