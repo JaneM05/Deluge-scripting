@@ -1,0 +1,46 @@
+Notes:
+Supplier Filter (Liquidation, Reimbursement) is still in development.
+Status Filter (Liquidation, Reimbursement, Purchase Requisition, Supplier Payment) is still in development. 
+
+Implementation:
+Modified the Stateless Form named “Search Form” that has 2 fields and 2 buttons
+
+Search Field - Single Line (Can search Reference Number , Invoice Number, Supplier)
+Status Field - Dropdown with the following values: Draft, Endorsed, Verified, Endorsed - OPMT, Endorsed - COO, Endorsed - AEV, Invoice Created, Invoice Endorsed, Invoice Approved, Submitted, Open, Check Ready, Closed
+Search Button
+Show All Records Button
+Modified the Workflow rule for “Search” button click, that will display the filtered reports based on the User Input in the Search Field or Status Field (Reference Number, Invoice Number, Supplier Name)
+
+Click Search Button URL: https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/workflowbuilder/Search_CA/edit
+
+Notes:
+
+If both fields are Empty, an alert message will appear.
+
+Modified the Workflow rule for “Show All Records” button click, that will display all the reports.
+
+URL : https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/workflowbuilder/Show_All_Records/edit
+
+Modified the Workflow rule that when the Search Field has an input value, the Status Field will auto populate.
+
+URL : https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/workflowbuilder/Auto_Add_Status_Base_on_R/edit
+
+
+EXPECTED RESULTS
+
+When the user clicks the Search button, the filtered reports will be displayed.
+By Reference Number 
+By Invoice Number 
+By Supplier  
+When the Search has a value, the Status will auto populate
+
+
+FUNCTION REFERENCE URL
+
+Modified the associated Functions
+https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/customFunction/Viewer.showCashAdvanceList/edit
+https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/customFunction/Viewer.showLiquidationList/edit
+https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/customFunction/Viewer.showReimbursementList/edit
+https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/customFunction/Viewer.showPRList/edit
+https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/customFunction/Viewer.showSupplierPaymentList/edit
+https://creator.zoho.com/appbuilder/aboitizfdn/axis-dev/pagebuilder/AFI_Accountant_Fund_Request_Page/edit
