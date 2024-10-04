@@ -1,0 +1,34 @@
+recordId = 123;
+
+//Basic
+
+// Via ID
+zoho.crm.getRecordById("Leads", recordId);
+
+// Multiple records
+zoho.crm.getRecords("Leads", 1, 200);
+
+// Search records with criteria
+zoho.crm.searchRecords("Leads", "(Lead_Status:equals:Lost Lead) and (Company:equals:Sample Co) or (Mobile:starts_with:09)", 1, 200);
+// Search using COQL
+searchGigRecords = {"select_query":"SELECT id, Deal_Name, Band_Desired, Gig_Event_Dates, Stage FROM Deals WHERE (((Stage='" + contractPendingStage + "') AND (Band_Desired='" + gigRecord.get("Band_Desired") + "')) AND Gig_Event_Dates='" + gigRecord.get("Gig_Event_Dates") + "') LIMIT 500"};
+headermp = Map();
+headermp.put("Content-Type","application/json");
+searchGigREecordsResponse = invokeurl
+[
+	url :"https://www.zohoapis.com/crm/v6/coql"
+	type :POST
+	parameters:searchGigRecords.toString()
+	headers:headermp
+	connection:"zapp_conn"
+];
+// Get related records
+zoho.crm.getRelatedRecords("Tasks","Leads", recordId, 1, 200);
+
+// Advance
+
+optionalMap = Map();
+optionalMap.put("trigger", {"workflow"});
+connection = "sample_conn";
+
+zoho.crm.getRecordById("Leads", recordId, optionalMap, connection); 
