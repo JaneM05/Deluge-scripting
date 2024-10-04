@@ -1,0 +1,18 @@
+	invoiceList = List();
+	get_Approve_FR_records = All_Approved_Fund_Request_Form[ID != 0 && Push_Status == "Submitted to Fusion" && Status != "Deleted" && Transaction_Type == "Supplier Payment" && Paid_Status == "Unpaid" && Fusion_Sync_Log == null];
+	if(get_Approve_FR_records.count() > 0)
+	{
+		for each  Approve_FR_record in get_Approve_FR_records
+		{
+			rec = Approve_FR_record.Invoice_Number + "<br>";
+			invoiceList.add(rec);
+		}
+	}
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"xeiranime05.com@gmail.com"
+		subject :"populate missing invoice id"
+		message :get_Approve_FR_records.count() + "<br><br>" + invoiceList
+	]
+	//end
