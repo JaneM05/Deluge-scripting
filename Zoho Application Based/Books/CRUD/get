@@ -1,0 +1,13 @@
+orgId = "848095884";
+recordId = "4954791000000196096"
+
+// Basic
+
+record = zoho.books.getRecordsByID("salesorders", orgId, recordId);
+// Getting custom field values
+record.get("salesorder").get("custom_field_hash").get("cf_api_key")
+
+// Advance
+
+connection = "sample_conn";
+zoho.books.getRecordsByID("salesorders", orgId, recordId, connection);
