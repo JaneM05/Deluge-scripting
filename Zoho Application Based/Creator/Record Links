@@ -2,8 +2,8 @@
 Specific Record View - https://creatorapp.zoho.com/luriejanemarte.devtac/sales-quote-application/record-summary/All_Quotes/4599357000000138027/
 Specific Record Edit View - https://creatorapp.zoho.com/luriejanemarte.devtac/sales-quote-application/#Form:Quote?recLinkID=4599357000000138027&viewLinkName=All_Quotes
 
-//Publish Form (EDIT view)
-format: 
+//Publish Form (EDIT form)
+FORMAT
 Form: https://creator.zoho.com/appowner_name/application_name/Form_Name/record-edit/Report_Name/record_ID/
 Publish Form : https://creator.zoho.com/appowner_name/application_name/Form_Name/record-edit/Report_Name/record_ID/privatekey
 
