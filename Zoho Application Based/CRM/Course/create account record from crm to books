@@ -1,0 +1,7 @@
+booksSync = invokeurl
+[
+	url :"https://www.zohoapis.com/books/v3/crm/account/" + accountID + "/import?organization_id=" + 859049575
+	type :POST
+	connection:"crm_books"
+];
+info booksSync;
