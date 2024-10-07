@@ -1,0 +1,32 @@
+NOTES 
+- Once the Training Sign-Off form has all the signatories. A PDF File document should be generated.
+- And automatically attached to the Attachment Related List of the Deal Record. With the File Naming TSO-[ACCOUNT NAME]-YYYYMMDD (Date when it was completed)
+- once the Training Sign Off is attached to the Deal Record, the **Current** **State/Stage** will automatically be updated to **Training Sign-Off Completed.**
+
+CODE SNIPPET:
+
+getcreator_data = Training_SignOff_Form[Training_Title == Training_Title];
+	get_deal_record = zoho.crm.getRecordById("Deals",Training_Title.toLong());
+	account_name = get_deal_record.get("Account_Name").get("name");
+	current_time = zoho.currentdate.replaceall(" ","_").replaceAll("/","_");
+	File_Name = "TSO-" + account_name + "-" + current_time;
+	file_url = "https://creatorapp.zohopublic.com/" + zoho.appuri + "/record-pdf/Training_SignOff_Form_Report/" + getcreator_data.ID + "/" + File_Name + "/ZCF7vTnEuDNXyXeVDDfdMnRGG5Zqfp7k7Vv5JRAJN0WjGhzsCSzRRVJmxXgM9VEPu4qJxfMAjDf2rj8Pagw6zT1qSF6NAD6GUjbF/";
+	exportPDF = invokeurl
+	[
+		url :file_url
+		type :GET
+	];
+	uploadPDF = zoho.crm.attachFile("Deals",Training_Title.toLong(),exportPDF);
+	if(!uploadPDF.isEmpty())
+	{
+		crmMap = Map();
+		crmMap.put("Stage","Training Sign-Off Completed");
+		updateDeal = zoho.crm.updateRecord("Deals",Training_Title.toLong(),crmMap);
+		info updateDeal;
+	}
+
+
+ADDITIONAL Note:
+
+- The report is a publish report, so the private key is required
+- Create a Record Template and use it as Default in Open Report Properties
