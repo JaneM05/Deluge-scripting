@@ -1,0 +1,13 @@
+FIELDS
+input.Account_Name - integration field
+input.Contact_Name - dropdown list
+
+//get the contacts in crm using the account id
+crm_Data = zoho.crm.getRelatedRecords("Contacts","Accounts",input.Account_Name.toLong());
+contactList = List();
+for each  crmContact in crm_Data
+{
+	full_name = crmContact.getJson("Full_Name");
+	contactList.add(full_name);
+}
+input.Contact_Name:ui.add(contactList);
