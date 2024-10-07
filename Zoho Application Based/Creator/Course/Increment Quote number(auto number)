@@ -1,0 +1,3 @@
+lastrecord = Quote[ID != 0].maximum(Auto_Number);
+newreocrd = ifnull(lastrecord,0) + 1;
+input.Quote_Number = "2024-" + newreocrd;
