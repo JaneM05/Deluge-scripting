@@ -1,0 +1,10 @@
+getCrm_Contact_Details = zoho.crm.getRelatedRecords("Contacts","Accounts",input.Account_Name.toLong());
+for each  Crm_Contact in getCrm_Contact_Details
+{
+	full_name = Crm_Contact.getJson("Full_Name");
+	if(input.Contact_Name == full_name)
+	{
+		input.Email = Crm_Contact.get("Email");
+		input.Phone_Number = Crm_Contact.get("Phone");
+	}
+}
