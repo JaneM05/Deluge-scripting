@@ -1,0 +1,33 @@
+- This will get the Attachment in Deals Module and push it to Accounts Module in Attachment related list
+
+getDetails = zoho.crm.getRecordById("Deals",dealsid);
+///////////////////////////////////////////////////////// Send attachment to Accounts Module
+//get Account ID
+accountId = getDetails.get("Account_Name").get("id");
+////////////////////////////////////////////////////////////////////
+//condition that sort the fetch attachments
+sortAttachment = Map();
+sortAttachment.put("sort_by","Created_Time");
+sortAttachment.put("sort_order","desc");
+//fetch the attachments in a deals record
+deal_attachments = zoho.crm.getRelatedRecords("Attachments","Deals",dealsid,1,200,sortAttachment);
+attachment_id = deal_attachments.get(0).get("id");
+download_attachment = invokeurl
+[
+	url :"https://www.zohoapis.com/crm/v7/Deals/" + dealsid + "/Attachments/" + attachment_id
+	type :GET
+	connection:"oauth_crm"
+];
+//Upload/Post attachments to Account
+uploadtoAccounts = zoho.crm.attachFile("Accounts",accountId,download_attachment);
+// get the maintenance id
+getMaintenance = zoho.crm.getRecords("Maintenance");
+for each  maintenanceRecord in getMaintenance
+{
+	if(maintenanceRecord.get("Deal_Name").get("id") == dealsid)
+	{
+		maintenance_id = maintenanceRecord.get("id");
+	}
+}
+//Post attachments to maintenance
+uploadtoMaintenance = zoho.crm.attachFile("Maintenance",maintenance_id,download_attachment);
