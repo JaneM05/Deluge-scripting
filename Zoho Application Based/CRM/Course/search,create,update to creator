@@ -1,0 +1,14 @@
+//search for record in creator
+search = zoho.creator.getRecords("luriejanemarte.devtac","sales-quote-application","All_Accounts","CRM_ID ==\"" + accountID + "\"",1,1,"crm_creator");
+if(search.get("data").isNull())
+{
+	//created record
+	createaccount = zoho.creator.createRecord("luriejanemarte.devtac","sales-quote-application","Accounts",creatormp,Map(),"crm_creator");
+}
+else
+{
+	//if there is a record it will update
+	creatorid = search.get("data").get(0).get("ID");
+	createaccount = zoho.creator.updateRecord("luriejanemarte.devtac","sales-quote-application","All_Accounts",creatorid,creatormp,Map(),"crm_creator");
+}
+info createaccount;
