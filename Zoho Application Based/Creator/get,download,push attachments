@@ -1,2 +1,7 @@
-Download pdf per record - publish report
+Download pdf to computer - publish report
         * openUrl(zoho.appuri+"record-pdf/Training_SignOff_Form_Report/"+input.creator_ID + "/"+File_Name+"/ZCF7vTnEuDNXyXeVDDfdMnRGG5Zqfp7k7Vv5JRAJN0WjGhzsCSzRRVJmxXgM9VEPu4qJxfMAjDf2rj8Pagw6zT1qSF6NAD6GUjbF","new window");
+
+
+
+
+
