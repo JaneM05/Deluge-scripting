@@ -1,7 +1,13 @@
 Download pdf to computer - publish report
         * openUrl(zoho.appuri+"record-pdf/Training_SignOff_Form_Report/"+input.creator_ID + "/"+File_Name+"/ZCF7vTnEuDNXyXeVDDfdMnRGG5Zqfp7k7Vv5JRAJN0WjGhzsCSzRRVJmxXgM9VEPu4qJxfMAjDf2rj8Pagw6zT1qSF6NAD6GUjbF","new window");
 
-
+Get PDF of Publish Report
+       * 	file_url = "https://creatorapp.zohopublic.com/" + zoho.appuri + "/record-pdf/Training_SignOff_Form_Report/" + getcreator_data.ID + "/" + File_Name + "/ZCF7vTnEuDNXyXeVDDfdMnRGG5Zqfp7k7Vv5JRAJN0WjGhzsCSzRRVJmxXgM9VEPu4qJxfMAjDf2rj8Pagw6zT1qSF6NAD6GUjbF/";
+	exportPDF = invokeurl
+	[
+		url :file_url
+		type :GET
+	];
 
 
 
