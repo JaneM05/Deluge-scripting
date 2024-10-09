@@ -1,0 +1,160 @@
+URL: https://creator.zoho.com/appbuilder/aboitizfdn/axis/workflowbuilder/push_approved_SP_to_appro/edit
+
+try 
+{
+	if(input.Action_field == "EndorseAEV")
+	{
+		user_role = thisapp.portal.loginUserProfile();
+		if(user_role == "AFI Accounting Manager" || user_role == "AFI OPMT" || user_role == "AFI COO" && input.Action_field == "EndorseAEV")
+		{
+			//Tan update 07/27/2023 Validate if already exist
+			sp = All_Approved_Fund_Request_Form[Fund_Request_ID == input.Supplier_Payment_ID.toString()];
+			if(sp.count() > 0)
+			{
+				alert "Oops, this transaction is already exist in approved fund request. With invoice number : " + sp.Invoice_Number;
+				sendmail
+				[
+					from :zoho.adminuserid
+					to :"alvin.gultiano@devtac.ph"
+					subject :"PRODUCTION :Supplier Payment Duplicate " + sp.Invoice_Number
+					message :"Supplier Payment ID " + input.Supplier_Payment_ID
+				]
+			}
+			else
+			{
+				for each  stats in Supplier_Payment_Header[ID == input.Supplier_Payment_ID]
+				{
+					with_PR = Project_Entry_Form[Project_Subtype_ID == stats.PR_ID];
+					requestor = with_PR.Created_by_Email;
+					project_ref = with_PR.Reference_Number;
+					fund_request_attachement = Fund_Request_Attachment[Transaction_ID == stats.ID];
+					if(fund_request_attachement.count() > 0)
+					{
+						attachment_type = fund_request_attachement.Attachment_Type;
+						file_attachement = fund_request_attachement.Attachments;
+						file_name = fund_request_attachement.Document_Name;
+					}
+					supplier = Oracle_Supplier[ID = stats.Supplier];
+					if(supplier.count() > 0)
+					{
+						supplier_name = supplier.Supplier_Name;
+						supplier_site = supplier.Supplier_Site_Code;
+					}
+					//Get Line Items Details
+					reimburse_line_items = Supplier_Payment_Detail_Form[Supplier_Payment_ID == stats.ID];
+					if(reimburse_line_items.count() > 0)
+					{
+						line_amount = reimburse_line_items.Available_PR_Amount;
+						description_value = reimburse_line_items.Particulars;
+					}
+					proj = Project_Entry_Form[ID == stats.Project];
+					if(proj.count() > 0)
+					{
+						requestor = proj.Created_by_Email;
+						project_ref = proj.Reference_Number;
+						Business_UNIT = Business_Units[ID == proj.Business_Unit_Name];
+						if(Business_UNIT.count() > 0)
+						{
+							business_unit_name1 = IFNULL(Business_UNIT.Oracle_Fusion_Code,"");
+						}
+					}
+					//Get Supplier Email
+					supplier5 = Oracle_Supplier[ID = stats.Supplier];
+					if(supplier5.count() > 0)
+					{
+						for each  sup5 in supplier5.Addresses
+						{
+							supplier_email2 = sup5.Email;
+						}
+					}
+					//URL Download Link
+					URL_Download_Link = "https://aboitizfdn.zohocreator.com/aboitizfdn/axis-dev/pdf/Supplier_Payment_Printable_Page?supplier_payment_id=" + stats.ID + "&isc5page=true&zc_PdfOrientation=landscape";
+					afi_accountant_approver2 = User_Profile_Create_Form[Email == stats.AFI_Accountant_Approver];
+					if(afi_accountant_approver2.count() > 0)
+					{
+						afi_accountant_approver = afi_accountant_approver2.User_Name.first_name + " " + afi_accountant_approver2.User_Name.last_name;
+					}
+					add_record = insert into All_Approved_Fund_Request_Form
+					[
+						Added_User=zoho.loginuser
+						Transaction_Type="Supplier Payment"
+						Project_Reference_Number=project_ref
+						Particular=description_value
+						Invoice_Number=stats.Invoice_Number
+						Invoice_Currency_Code=stats.Invoice_Currency_Code
+						Invoice_Type="Standard"
+						Requester_Email=requestor
+						Project_Title=proj.Title
+						Total_Amount=stats.Total_Payment_Amount
+						Amount=stats.Total_Payment_Amount
+						Invoice_Pay_Group=stats.Pay_Group.Pay_Group
+						Business_Unit_Name="AFI BU"
+						Supplier_Name=supplier_name
+						Org_ID=stats.Orig_ID
+						Procurement_BU="AFI BU"
+						Supplier_Site_Code=supplier_site
+						Oracle_Description=stats.Oracle_Description
+						Invoice_Source="AFI AP API"
+						Legal_Entity="ABOITIZ FOUNDATION, INC."
+						Term_Name="Immediate"
+						Terms_Date=zoho.currentdate
+						Accounting_Date=zoho.currentdate
+						Conversion_Rate_Type="Corporate"
+						Conversion_Date=zoho.currentdate
+						Requester="Perez, Keen Lyra"
+						Invoice_Date=zoho.currentdate
+						Push_Status="Open"
+						Status=stats.Status
+						Date_Submitted=stats.Date_Submitted
+						Invoice_Location="TAG"
+						LineNumber="1"
+						LineAmount=stats.Total_Payment_Amount
+						Description1=stats.Oracle_Description
+						Quantity="1"
+						AccountingDate=zoho.currentdate
+						Distribution_Combination=stats.Distribution_Account
+						LineNumber1="1"
+						FLEX_Context="AFI Project Proponent"
+						Business_Unit_Name1=business_unit_name1
+						Type_field="URL"
+						Payment_Currency=stats.Payment_Currency
+						Supplier_Oracle_ID=stats.Supplier_Invoice_ID
+						Transaction_Reference_Number=stats.Supplier_Payment_Reference_Number
+						Url1=URL_Download_Link
+						Fund_Request_ID=stats.ID
+						Attachment=file_attachement
+						Description1=stats.Purpose_of_Supplier_Payment
+						Paid_Status="Unpaid"
+						Release_Location=stats.Release_Location
+						Date_Actual_Fund_Released=stats.Date_Actual_Fund_Released
+						TaxClassification=stats.Tax_Classification.Tax_Classification
+						Withholding=stats.Tax_Code.Tax_Code
+						IntendedUse=stats.Intended_Use.Intended_Use
+						Invoice_Payment_Method_Code=stats.Payment_Method.Payment_Method
+						Delivery_Channel=stats.Delivery_Channels.Delivery_Channel
+						Supplier_Email=supplier_email2
+						PDF_HEADER="SUPPLIER PAYMENT"
+					];
+					sendmail
+					[
+						from :zoho.adminuserid
+						to :"alvin.gultiano@devtac.ph"
+						subject :"PRODUCTION :Supplier Payment Approval Success: " + stats.Invoice_Number
+						message :"Transaction Details :  " + "<br> Record ID: " + add_record + "<br> Supplier Name: " + supplier_name
+					]
+					//Tan Update, July 24 2023, added try catch to capture error during approval
+				}
+			}
+		}
+	}
+}
+catch (e)
+{
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :"alvin.gultiano@devtac.ph"
+		subject :"PRODUCTION :Supplier Payment Approval Error Response"
+		message :"Error Message: " + e
+	]
+}
