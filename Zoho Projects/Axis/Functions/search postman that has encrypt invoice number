@@ -1,0 +1,5 @@
+void InvoiceNumber_Encryption.encryption(string invoice_NUMBER)
+{
+	encrypted_invoice_number = zoho.encryption.urlEncode(invoice_NUMBER).replaceAll("%20"," ");
+	info encrypted_invoice_number;
+}
