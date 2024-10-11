@@ -30,3 +30,31 @@ ADDITIONAL Note:
 
 - The report is a publish report, so the private key is required
 - Create a Record Template and use it as Default in Open Report Properties
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Other Format
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Upload_PDF(string signOffID, string dealID, string accname)
+{
+	//"4615753000000032003";
+	//
+	docname = "TSO-" + accname + zoho.currentdate.getYear() + zoho.currentdate.getMonth().toString("00") + zoho.currentdate.getDay().toString("00");
+	documentName = docname.replaceAll("[/\\(\)_@#\^!\$%\&\*:;`~ ]","");
+	info documentName;
+	exportPDF = invokeurl
+	[
+		url :"https://creator.zohopublic.com/kenneth.demo.acc2/training-sign-off/record-pdf/Training_Sign_Off_Report/" + signOffID + "/" + documentName + "/ThszmAXJZFHJbhEh6ueTNrTtW0XGQJEXHBEwt1BsnwPxqnJ8zVMUCkWjSxvm8gpsvYhCa8mAmAgnbfzd0YwTMBrKFH6zk78B97jQ/"
+		type :GET
+	];
+	//	info exportPDF;
+	eMap = Map();
+	attach = zoho.crm.attachFile("Deals",dealID.toLong(),exportPDF,"zoho_crm");
+	zoho.crm.updateRecord("Deals",dealID.toLong(),{"Stage":"Training Sign-Off Completed"},eMap,"zoho_crm");
+	//
+	//info attach;
+}
+
+
+
+
