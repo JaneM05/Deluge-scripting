@@ -1,0 +1,14 @@
+-  Join 2 tables and populate the id's from one table to multiple values
+Task Table - ID, Task Name and User ID Columns
+User Table - ID and User Name Columns
+
+SELECT
+		 "TaskTable"."ID" as 'ID',
+		 "TaskTable"."Task Name" as 'Task Name',
+		 GROUP_CONCAT("UserTable"."User Name") as 'User Name'
+FROM  "TaskTable"
+JOIN "UserTable" ON "TaskTable"."User ID"  LIKE CONCAT('%', "UserTable"."ID", '%')  
+GROUP BY "TaskTable"."ID",
+	  "TaskTable"."Task Name" 
+ORDER BY "ID" 
+
