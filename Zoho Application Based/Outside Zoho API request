@@ -1,0 +1,28 @@
+requestHeaders = Map();
+requestHeaders.put("Authorization","{Access Token}");
+bitwarden = invokeurl
+[
+	url: "https://api.bitwarden.com/public/collections"
+	type: GET
+	headers: requestHeaders
+];
+return bitwarden;
+
+*********************************************************************
+
+requestBearerToken = invokeurl
+[
+	url: "https://identity.bitwarden.com/connect/token"
+    type: POST
+    parameters: {
+        "grant_type": "client_credentials",
+        "scope": "api.organization",
+        "client_id": "{client_id}",
+        "client_secret": "{client_secret}"
+    }
+    headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+];
+
+
