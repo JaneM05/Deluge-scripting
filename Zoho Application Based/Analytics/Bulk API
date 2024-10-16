@@ -1,0 +1,10 @@
+IMPORT DATA
+
+In New Table
+You can use the Bulk APIs to create a new table and import data on the same.
+    - https://<ZohoAnalytics_Server_URI>/restapi/v2/workspaces/<workspace-id>/data
+
+In Existing Table
+You can also use Bulk APIs to import data into an existing specified table.
+    - https://<ZohoAnalytics_Server_URI>/restapi/v2/workspaces/<workspace-id>/views/<view-id>/data
+
