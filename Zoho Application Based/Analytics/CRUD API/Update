@@ -1,0 +1,8 @@
+You can also update rows in the specified table.
+
+REQUEST URI
+https://<ZohoAnalytics_Server_URI>/restapi/v2/workspaces/<workspace-id>/views/<view-id>/rows
+
+oauthscope: ZohoAnalytics.data.update
+
+reference link: https://www.zoho.com/analytics/api/v2/data-api/update-row.html
