@@ -1,0 +1,18 @@
+URI
+The URI of each resource can be obtained by accessing the API Root Endpoint.
+
+Sample: https://<ZohoAnalytics_Server_URI>/restapi/v2/workspaces
+
+ 
+
+CONFIG to be passed in Query String
+The following snippet shows the config that should be passed as query string with the URI defined above.
+
+https://<end_point>?CONFIG={"workspaceName":"<workspace-name>"}
+
+ 
+
+Authorization using OAUTH 2.0
+Access token have to be passed in the header for authorization purpose in the format given below.
+
+Authorization: Zoho-oauthtoken <access_token>
