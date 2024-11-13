@@ -1,0 +1,5 @@
+Pulling the Conversation
+Endpoint : https://{zohosalesiq_server_uri}/api/v2/{screen name}/conversations
+
+You can fetch the Ticket Id using the below Endpoint along with the below params
+Endpoint : https://salesiq.zoho.com/api/v2/{screenname}/conversations/{conversationId}/visitor?include=moreinfo,trackinginfo,integrationdetails,tagdetails
