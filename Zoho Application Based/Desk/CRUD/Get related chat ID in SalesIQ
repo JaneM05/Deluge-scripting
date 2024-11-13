@@ -1,0 +1,37 @@
+Note: If Zoho Desk and SalesIQ Integration is Active
+
+//get the related conersation id in SalesIQ
+	response = invokeurl
+	[
+		url :"https://salesiq.zoho.com/api/v2/smsupermallscustomercare/conversations"
+		type :GET
+		connection:"zohosalesiq"
+	];
+	if(response.size() > 0)
+	{
+		list_of_data = response.get("data");
+		for each  data in list_of_data
+		{
+			conversation_id = data.get("id");
+			detailed_response = invokeurl
+			[
+				url :"https://salesiq.zoho.com/api/v2/smsupermallscustomercare/conversations/" + conversation_id + "/visitor?include=moreinfo,trackinginfo,integrationdetails,tagdetails"
+				type :GET
+				connection:"zohosalesiq"
+			];
+			// 		info detailed_response;
+			for each  conversation_details in detailed_response.getJSON("data")
+			{
+				conversation_ex_info = conversation_details.get("ex_info");
+				for each  convo_ex_info in conversation_ex_info
+				{
+					convo_ticket_ID = convo_ex_info.get("EXID");
+					if(convo_ticket_ID == ticket_id)
+					{
+						convo_id = conversation_details.get("id");
+						// 					info conversation_id;
+					}
+				}
+			}
+		}
+	}
