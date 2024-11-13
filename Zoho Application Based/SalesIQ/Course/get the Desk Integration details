@@ -1,0 +1,21 @@
+Note: Map the param to get the Chat ID 
+
+screenname = "smsupermallscustomercare";
+chatID = "";
+
+	crmMap = Map();
+	if(session.containKey("chatID"))
+	{
+    //get the Chat ID from the session
+		chatID = session.get("chatID").get("value");
+	}
+
+	//get related ticket in Zoho desk
+	convResponse = invokeurl
+	[
+		url :"https://salesiq.zoho.com/api/v2/" + screenname + "/conversations/" + chatID + "/visitor?include=moreinfo,trackinginfo,integrationdetails,tagdetails"
+		type :GET
+		connection:"zohosalesiq"
+	];
+	ticket_id = convResponse.get("data").get("conversation_details").get("ex_info").get("3").get("EXID");
+	ticket_number = convResponse.get("data").get("conversation_details").get("ex_info").get("3").get("TICKETNUMBER");
