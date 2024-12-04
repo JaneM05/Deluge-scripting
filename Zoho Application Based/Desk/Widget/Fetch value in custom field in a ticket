@@ -1,0 +1,15 @@
+window.onload = function () {
+	ZOHODESK.extension.onload().then(function (App) {
+
+		// Get ticket-data in custom field
+		ZOHODESK.get('ticket.cf').then(function (res) {
+			serviceType = res["ticket.cf"].cf_service_type;
+			// document.getElementById("ServiceType").innerHTML = serviceType;
+						// Handle UI changes based on serviceType
+						handleServiceType(serviceType); ---> a function that has condition on wht type of service type
+
+		}).catch(function (err) {
+				//error Handling
+			});
+	});
+};
