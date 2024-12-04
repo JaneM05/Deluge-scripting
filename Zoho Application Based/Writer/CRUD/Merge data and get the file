@@ -1,0 +1,32 @@
+				//Mapp the data using writer api
+				datamap = Map();
+				datamap.put("Posting_Title",getPostingTitle);
+				datamap.put("Job_Updates",getDescription);
+				datamap.put("Client_Name",getDepartment);
+				//merge the datamap to another map (using the merge data api in creator)
+				mergedata = Map();
+				mergedata.put("merge_data",{"data":datamap});
+				mergedata.put("output_format","pdf");
+				mergedata.put("response_type","link");
+
+				//post the mergedata to zoho writer
+				response = invokeurl
+				[
+					url :"https://www.zohoapis.com/writer/api/v1/documents/stf1r1f5bcda7613647bea5b6359d66797a5f/merge"
+					type :POST
+					parameters:mergedata
+					connection:"writer_connection"
+				];
+
+			//get the merge document URL
+				getwriterfile = invokeurl
+				[
+					url :response.get("URL")
+					type :GET
+					connection:"writer_connection"
+				];
+
+        getwriterfile -----> is the pdf file
+
+
+
