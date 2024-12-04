@@ -10,6 +10,10 @@ create = insert into Account
     Address_Information.postal_Code = "1962"
     Address_Information.country = "Northern Earth"
 ];
+//--------------------------------------------------------------------------------------------------------
+// Insert record you can use this to make a notification  - <variable> = zoho.pushNotification(<emailID>, <title>, <message>, <reportLinkName>, <recordID>);
+//--------------------------------------------------------------------------------------------------------
+creatorID = create; -----------------> getting the ID of the added record
 
 // Outside the Creator app
 
