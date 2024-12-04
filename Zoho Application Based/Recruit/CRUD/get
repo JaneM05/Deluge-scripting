@@ -1,0 +1,10 @@
+------ outside recruit platform ------------
+
+		getRecruitData = invokeurl
+		[
+			url :"https://recruit.zoho.com/recruit/v2/Job_Openings"
+			type :GET
+			connection:"recruit_connection"
+		];
+		requestWeeklyRecruitData = getRecruitData.get("data");
+
