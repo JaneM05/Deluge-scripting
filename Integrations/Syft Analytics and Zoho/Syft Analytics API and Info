@@ -2,7 +2,12 @@ API Documentation
 https://syft-analytics.notion.site/API-Documentation-d173dd1219c84f099436bec5df7c6920#6ade99b088c04b7cbe89daaead7340f5
 Note: Syft API is currently in BETA
 
+Create or Find API key in Syft Analytics
+x-api-key - https://www.syftanalytics.com/hq/settings/api-setup
 
+API Testing via Postman
+Screenshots are found in Notion Account
+Link: https://www.notion.so/Syft-Analytics-183a9b63029c801f8cbacedf116e3f6b?pvs=4
 
 
 
