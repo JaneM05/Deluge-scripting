@@ -1,6 +1,10 @@
 orgId = "848095884";
 recordId = "4954791000000196096"
 
+invoiceID = invoice.get("invoice_id");
+invoicedate = invoice.get("date").toDate();
+organizationID = organization.get("organization_id");
+
 // Basic
 
 record = zoho.books.getRecordsByID("salesorders", orgId, recordId);
