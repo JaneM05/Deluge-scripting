@@ -1,0 +1,60 @@
+/*
+This is a sample function. Uncomment to execute or make changes to this function.
+invoiceID = invoice.get("invoice_id");
+invoicedate = invoice.get("date").toDate();
+organizationID = organization.get("organization_id");
+*/
+
+invoicedate = invoice.get("date");
+invoice_balance = invoice.get("balance");
+
+//Postman
+syft_url = "https://api.syftanalytics.com/connections/fields";
+syft_api_key = "1755db46-6ca0-44b5-95e3-5e375370e4c8";
+// connection_id = "20386";
+
+postmanHeader = Map();
+postmanHeader.put("x-api-key",syft_api_key);
+
+postmanParam = Map();
+postmanParam.put("connection_id",20386);
+//Get the Fields in Syft Analytics
+postmanResponse = invokeurl
+[
+	url :syft_url
+	type :GET
+	parameters:postmanParam
+	headers:postmanHeader
+];
+
+if ( !postmanResponse.get("data").isEmpty() ) 
+{
+	
+	for each record in postmanResponse.get("data")
+	{
+		 //if field is price
+		 if ( record.get("name") == "Price" ) 
+		 {
+			 field_id = record.get("id");
+		 }	
+	}
+//Update the field in syft analytics
+	postmanBody = Map();
+	postmanBody.put("date", invoicedate);
+	postmanBody.put("value",invoice_balance.toLong());
+	postmanBody.put("connection_id",20386);
+	postmanBody.put("field_id",field_id);
+	postmanBody.put("mode","update");
+	
+	syft_field_data_url = "https://api.syftanalytics.com/connections/field-data";
+	postman_updateResponse = invokeurl
+	[
+		url :syft_field_data_url
+		type :POST
+		parameters:postmanBody
+		headers:postmanHeader
+	];
+	
+	info postman_updateResponse;
+	
+}
