@@ -1,0 +1,18 @@
+// -----> fetch records in custom module with lookup field as criteria
+	parent_config_details = invokeurl
+	[
+		url :"https://desk.zoho.com/api/v1/cm_parent_ticket_configs/" + parentConfigId
+		type :GET
+		headers:{"featureFlags":"lookUp"}
+		detailed:true
+		connection:"zdesk_conn"
+	];
+
+// ----> Custom Module
+searchResult = invokeurl
+[
+  url :"https://desk.zoho.com/api/v1/cm_child_ticket_configs/search?field1=cf_parent_ticket_category_lookup_id:" + parentConfigId + "&field2=cf_parent_automation_reference:" + referenceAutomationName
+  type :GET
+  connection:"zdesk_conn"
+];
+info "Child Configs: " + searchResult;
