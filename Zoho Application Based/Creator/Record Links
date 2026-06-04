@@ -9,3 +9,16 @@ Publish Form : https://creator.zoho.com/appowner_name/application_name/Form_Name
 
 Example:
 publish form: "https://creator.zohopublic.com/luriejanemarte.devtac/training-sign-off-management/Training_SignOff_Form/record-edit/Training_SignOff_Form_Report/" + creator_ID + "/ZCF7vTnEuDNXyXeVDDfdMnRGG5Zqfp7k7Vv5JRAJN0WjGhzsCSzRRVJmxXgM9VEPu4qJxfMAjDf2rj8Pagw6zT1qSF6NAD6GUjbF
+
+//Redirect to Specific Page
+openUrl("#Page:<Page_Link_Name>", "same window");
+
+//Refresh the Parent Page
+openUrl("#Script:page.parent.refresh", "parent window");
+
+// Close pop up dialogue
+openUrl("#Script:page.parent.refresh ","parent window");
+
+// Use openUrl() to edit a specific record
+openURL("#Form:Meeting?recLinkID=" + input.ID + "&viewLinkName=All_Meetings","popup window");
+
