@@ -1,0 +1,34 @@
+//Create a new document using a template and store it a folder in a workdrive
+// BIR Document Template 
+docTemplate = "l1f8v1444f46526f441759f930b8fa5e8d0e8";
+subFolderId = "l1f8v9bd9b5fca5dd42f8ae5dc027a26829d1";
+//
+purchaseNumber = purchaseorder.getJSON("purchaseorder_number");
+vendor_name = purchaseorder.getJSON("vendor_name");
+//
+datamap = Map();
+datamap.put("vendor_name",vendor_name);
+datamap.put("cf_start_period",purchaseorder.getJSON("custom_field_hash").getJSON("cf_start_period"));
+datamap.put("cf_end_period",purchaseorder.getJSON("custom_field_hash").getJSON("cf_end_period"));
+// -------------------------------
+// 
+outputsettings = Map();
+outputsettings.put("doc_name",vendor_name + " - " + purchaseNumber);
+outputsettings.put("folder_id",subFolderId);
+outputsettings.put("format","pdf");
+outputsettings.put("overwrite_existing_file","true");
+// -------------------------------
+// 
+param = Map();
+param.put("merge_data",{"data":datamap});
+param.put("output_settings",outputsettings);
+// -------------------------------
+// 
+response = invokeurl
+[
+	url :"https://www.zohoapis.com/writer/api/v2/documents/"+docTemplate+"/merge/store"
+	type :POST
+	parameters:param
+	connection:"writerconnection"
+];
+info response;
