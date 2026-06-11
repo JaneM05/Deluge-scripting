@@ -1,0 +1,61 @@
+teamFolderId = "b1ozdc1140bcb5a9a40bda4205bc34afcf1ac";
+currentDate = zoho.currentdate;
+recordId = input.ID;
+// -------------------------------
+// Get details by record ID
+recordDetails = zoho.creator.getRecordById("demo105devtac","integral-industry","All_Maintenances",recordId,"zoho_creator_connection");
+// -------------------------------
+// 
+if(recordDetails.get("data").get("Folder_ID") == null || recordDetails.get("data").get("Folder_ID") == "")
+{
+	createFolder = zoho.workdrive.createFolder("FOLDER - " + recordDetails.get("data").get("Maintenance_Name") + " - " + currentDate + "",teamFolderId,"writer_connection");
+	subFolderId = createFolder.get("data").getJSON("id");
+	folderAttributes = createFolder.get("data").getJSON("attributes");
+	// -------------------------------
+	// update folder id field
+	updateMap = Map();
+	updateMap.put("Folder_ID",subFolderId);
+	// 	
+	updateRecordField = zoho.creator.updateRecord("demo105devtac","integral-industry","All_Maintenances",recordId,updateMap,Map(),"zoho_creator_connection");
+	// -------------------------------
+	// 
+	folderCreatedTime = folderAttributes.get("created_time");
+	currentYear = currentDate.getYear();
+	dateString = folderCreatedTime + ", " + currentYear;
+	// -------------------------------
+	// Convert the text string to a date-time object
+	parsedDate = dateString.toDate("MMM dd, hh:mm a, yyyy");
+	formattedDate = parsedDate.toString("dd-MMM-yyyy");
+	// -------------------------------
+	// 
+	datamap = Map();
+	datamap.put("Maintenance_Name",recordDetails.get("data").get("Maintenance_Name"));
+	datamap.put("Note",recordDetails.get("data").get("Note"));
+	// -------------------------------
+	// 
+	outputsettings = Map();
+	outputsettings.put("doc_name","Report Generated");
+	outputsettings.put("folder_id",subFolderId);
+	outputsettings.put("format","pdf");
+	outputsettings.put("overwrite_existing_file","true");
+	// -------------------------------
+	// 
+	param = Map();
+	param.put("merge_data",{"data":datamap});
+	param.put("output_settings",outputsettings);
+	// -------------------------------
+	// 
+	response = invokeurl
+	[
+		url :"https://www.zohoapis.com/writer/api/v2/documents/kdnkh1aa58835724b4c309d384df01a78da91/merge/store"
+		type :POST
+		parameters:param
+		connection:"writer_connection"
+	];
+	info response;
+}
+else
+{
+	// -------------------------------
+	//override the pdf file inside the folder	
+}
