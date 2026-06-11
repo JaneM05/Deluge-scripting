@@ -1,0 +1,1 @@
+createFolder = zoho.workdrive.createFolder("FOLDER - " + recordDetails.get("data").get("Maintenance_Name") + " - " + currentDate + "",teamFolderId,"writer_connection");
