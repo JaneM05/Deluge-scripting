@@ -1,0 +1,111 @@
+YT Link: https://youtu.be/irg-2IfAjpo
+
+The Workflow for Permanent Storage
+To build this, you follow these three steps:
+ 
+1. Create a "File Search Store"
+Think of this as your permanent folder in the Gemini cloud.
+ 
+Persistence: It stays forever until you manually delete it.
+ 
+Capacity: You can store thousands of documents here.
+ 
+2. Upload and Import Your Files
+You upload your large files (PDF, JSON, TXT, etc.) and "import" them into that store.
+ 
+Gemini will automatically chunk your large files (break them into small pieces) and index them.
+ 
+While the original raw file you uploaded expires in 48 hours, the indexed version in the Store remains permanent.
+ 
+3. Connect the Store to Zoho Desk (Deluge)
+When a ticket comes in, your Deluge script tells Gemini: "Look at the ticket, then search my specific File Search Store to find the right category."
+
+=============================================================================================================================================================
+
+// Use your permanent Store ID here
+storeId = "fileSearchStores/YOUR_STORE_ID";
+ 
+payload = {
+    "contents": [{
+        "parts": [{"text": "Identify category and sub-category for this ticket: " + subject}]
+    }],
+    "tools": [{
+        "file_search": {
+            "file_search_store_names": [storeId]
+        }
+    }]
+};
+ 
+// Send to Gemini...
+
+=============================================================================================================================================================
+
+1. Create the File Search Store
+This creates the "permanent container" for your files.
+ 
+Method: POST
+ 
+URL: https://generativelanguage.googleapis.com/v1beta/fileSearchStores?key=YOUR_API_KEY
+ 
+Headers: Content-Type: application/json
+ 
+Body (raw JSON):
+ 
+JSON
+ 
+{
+  "displayName": "Organization-Ticketing-KB"
+}
+The Response: You will receive a JSON object. Copy the "name" value (it looks like fileSearchStores/abc-123). This is your unique Store ID.
+ 
+2. Upload and Index Your Large File
+To add your file to this store permanently, you use the uploadToFileSearchStore endpoint. This is a multi-part upload.
+ 
+Method: POST
+ 
+URL: https://generativelanguage.googleapis.com/upload/v1beta/fileSearchStores/YOUR_STORE_ID:uploadToFileSearchStore?key=YOUR_API_KEY
+ 
+Note: Replace YOUR_STORE_ID with the name you got in step 1 (e.g., fileSearchStores/abc-123).
+ 
+Body: Select form-data.
+ 
+Add a key named file.
+ 
+Change the type from Text to File.
+ 
+Select your large organization file from your computer.
+ 
+Gemini will now start "chunking" and "embedding" your file. This takes a few seconds to a few minutes depending on the file size.
+ 
+3. Verify the Content (Optional)
+You can check if your file is successfully indexed and stored by listing the documents in your store.
+ 
+Method: GET
+ 
+URL: https://generativelanguage.googleapis.com/v1beta/fileSearchStores/YOUR_STORE_ID/documents?key=YOUR_API_KEY
+ 
+4. Summary of Zoho Desk Integration
+Once the store is set up in Postman, your Zoho Deluge script only needs to know that Store ID. You don't need to upload the file again.
+ 
+In your Zoho script, your tools section in the API payload will look like this:
+ 
+Code snippet
+"tools": [
+    {
+        "file_search": {
+            "file_search_store_names": ["fileSearchStores/your-actual-id-here"]
+        }
+    }
+]
+ 
+ 
+Why Postman is a good choice here:
+Permanent: Unlike the temporary File API, the data you put into a fileSearchStore does not expire after 48 hours.
+ 
+Scalable: You can add more files to the same store later by repeating Step 2.
+ 
+No Code Setup: You handle the "Knowledge Base" setup visually in Postman and only use the ID in your ticketing app code.
+
+=============================================================================================================================================================
+
+
