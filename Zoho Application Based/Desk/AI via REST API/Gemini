@@ -1,1 +1,777 @@
-trtetz
+Tools: Gemini, Postman , Zoho desk
+
+IMPLEMENTATION:
+
+-> Categorize via GEMINI
+
+try 
+{
+	departmentName = "GTE";
+	deskOrgId = "655766725";
+	geminiAPIKey = zoho.crm.getOrgVariable("gemini_booth_ticketing_api");
+	//Specific Dept Store
+	deptStore = zoho.crm.getOrgVariable("production_gte_store");
+	globalStore = zoho.crm.getOrgVariable("production_global_store");
+	searchGlobalDoc = false;
+	proceedTicketPopulation = false;
+	failureLog = "";
+	dateTodayConverted = zoho.currenttime.tostring("MMM dd yyyy HH:mm:ss","Asia/Manila");
+	// Recipients to Email Notifications
+	recepient = "lurie.marte@devtac.com,arianegaye.villalino@devtac.com,ruby.lingo@devtac.com,zdeskgemininotif@hirebooth.com";
+	//fallback variables
+	responseDepartmentId = "";
+	responsePriority = "";
+	responseSubCategory = "";
+	responseCategory = "";
+	geminiSummarizeText = "";
+	latestThreadClean = "";
+	//====================================================================
+	// GET Ticket Details 
+	//====================================================================
+	ticketDetails = zoho.desk.getRecordById(deskOrgId,"tickets",ticketId);
+	//
+	currentDepartmentId = ticketDetails.getJSON("departmentId");
+	ticketSubject = ticketDetails.getJSON("subject");
+	failureLogDetails = ticketDetails.getJSON("cf").getJSON("cf_failure_log");
+	sub_category = ticketDetails.getJSON("subCategory");
+	category = ticketDetails.getJSON("category");
+	department_id = ticketDetails.getJSON("departmentId");
+	if(category.isNull() && sub_category.isNull())
+	{
+		//====================================================================
+		//GET Ticket Latest Thread
+		//====================================================================
+		ticketThread = invokeurl
+		[
+			url :"https://desk.zoho.com/api/v1/tickets/" + ticketId + "/latestThread"
+			type :GET
+			connection:"zdesk_conn"
+		];
+		//
+		latestThread = ticketThread.getJSON("content");
+		//
+		if(!latestThread.isEmpty() || latestThread != null)
+		{
+			//// Remove HTML tags using Regex
+			//latestThreadClean = latestThread.replaceAll("<[^>]*>","");
+			//// Clean up HTML entities like &nbsp; or &amp;
+			//latestThreadClean = latestThreadClean.replaceAll("&nbsp;"," ").replaceAll("&amp;","&");
+			//latestThreadClean = latestThreadClean.replaceAll("\"","").replaceAll("'","");
+			//====================================================================
+			// ----> New version of thread cleanup
+			//====================================================================
+			// Remove HTML tags
+			latestThreadClean = latestThread.replaceAll("<[^>]*>","");
+			// Decode common HTML entities
+			latestThreadClean = latestThreadClean.replaceAll("&nbsp;"," ").replaceAll("&amp;","&").replaceAll("&lt;","<").replaceAll("&gt;",">").replaceAll("&quot;","\"").replaceAll("&#39;","'");
+			// Remove quotes if needed
+			latestThreadClean = latestThreadClean.replaceAll("\"","").replaceAll("'","");
+		}
+		else if(latestThread.isEmpty() || latestThread == null)
+		{
+			latestThreadClean = "";
+			failureLog = "Thread returned null. Here is the thread: " + latestThread + "<br><br>Below is the invoke response: " + ticketThread;
+		}
+		//check if latestThreadClean has value
+		if(!latestThreadClean.isEmpty() || latestThreadClean != null)
+		{
+			//Clean up Subject
+			if(!ticketSubject.isEmpty())
+			{
+				//// Remove HTML tags using Regex
+				//latestSubjectClean = ticketSubject.replaceAll("<[^>]*>","");
+				//// Clean up HTML entities like &nbsp; or &amp;
+				//latestSubjectClean = latestSubjectClean.replaceAll("&nbsp;"," ").replaceAll("&amp;","&");
+				//ticketSubject = latestSubjectClean.replaceAll("\"","").replaceAll("'","");
+				//====================================================================
+				// ----> New version of subject cleanup
+				//====================================================================
+				// Remove HTML tags
+				latestSubjectClean = ticketSubject.replaceAll("<[^>]*>","");
+				// Decode common HTML entities
+				latestSubjectClean = latestSubjectClean.replaceAll("&nbsp;"," ").replaceAll("&amp;","&").replaceAll("&lt;","<").replaceAll("&gt;",">").replaceAll("&quot;","\"").replaceAll("&#39;","'");
+				// Remove quotes if needed
+				ticketSubject = latestSubjectClean.replaceAll("\"","").replaceAll("'","");
+			}
+			//====================================================================
+			// Trigger Gemini to Summarize the Email Content
+			//====================================================================
+			requestBody = "{\"contents\": [{\"parts\": [{\"text\": \"Provide a concise summary of the email message. Here is the email subject: " + ticketSubject + " and here is the email content:" + latestThreadClean + "Your summary must be derived exclusively from the provided text; do not include outside knowledge, external inferences, or hallucinated details. Act as an objective scribe, limiting your output strictly to facts explicitly mentioned in the message without editorializing or assuming context not provided in the source. If the email contains ambiguity or is missing specific details—such as dates, names, or resolutions—reflect that exact ambiguity rather than attempting to clarify it with unverified information. Maintain the original context with total fidelity, ensuring no information is added or invented." + "\"}]}]}";
+			geminiSummarizeResponse = invokeurl
+			[
+				url :"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + geminiAPIKey
+				type :POST
+				parameters:requestBody
+				headers:{"Content-Type":"application/json"}
+			];
+			info "geminiSummarizeResponse: " + geminiSummarizeResponse;
+			if(geminiSummarizeResponse.getJSON("candidates").getJSON("content") != null)
+			{
+				geminiSummarizeText = geminiSummarizeResponse.getJSON("candidates").getJSON("content").getJSON("parts").getJSON("text");
+			}
+			//--> Check if summarize version is empty
+			if(geminiSummarizeText == "")
+			{
+				geminiSummarizeText = "Subject: " + ticketSubject + " Description: " + latestThreadClean;
+			}
+			//====================================================================
+			// Trigger Gemini to Categorize the Email Message 
+			//====================================================================
+			// --- STARTS HERE ---
+			//====================================================================
+			// PROMPT
+			//====================================================================
+			// 	//------> Original PROMPT
+			promptText = "Act as an Intent Classification Expert. The Summary is " + geminiSummarizeText + " for ticket Id " + ticketId + ". Analyze the message. First, identify the main intent, formatted as a single string that combines the primary action, the specific subject, and the important keywords. Then search the 'Definitions' file via file_search using the summary and the customer's specific concern. Rank results from 0.0 to 1.0, prioritizing specific terms over generic ones. Do not deduct points for missing keywords; instead, begin with a base relevance score and add bonus points when specific customer keywords appear in the concern or definition-related columns. Return ONLY raw JSON with no markdown or prose. The matches array must contain a maximum of 5 objects, sorted by match_score in descending order. Every object inside matches must always contain all of these keys exactly: category, sub_category, department_id, priority, and match_score. Never omit a key. If a value is unavailable, use null instead of removing the key. Fields category, sub_category, department_id, and priority must be extracted verbatim from their respective columns only. category must come only from the Category column, sub_category must come only from the Sub-category column, department_id must come only from the Department ID column, and priority must come only from the Priority column. Never use text from the 'Definitions' column to populate category or sub_category. If a sub_category is identified, the parent category must also be populated; never return a non-null sub_category with an empty or null category. Do not invent, infer, rewrite, or hallucinate field values. If the highest score is below 0.60, return No Match Found for all keys in a single match object and include a detailed explanation in match_notes describing why the threshold was not met, including which records were close matches but failed. If there are valid matches, include a detailed explanation in match_notes describing why the top record received the highest match_score. Output must follow this exact JSON schema: {ticketId:str, summary:str, main_intent:str, keywords:{specific_keywords:list,generic_keywords:list}, match_notes:str, matches:[{category:str|null, sub_category:str|null, department_id:str|null, priority:str|null, match_score:float}]}";
+			//====================================================================
+			// Search Matches in People Operations Doc Store
+			//====================================================================
+			docReference = departmentName + " Doc";
+			//
+			requestBody = Map();
+			requestBody.put("contents",{{"parts":{{"text":promptText}}}});
+			requestBody.put("tools",{{"file_search":{"file_search_store_names":{deptStore}}}});
+			// Construct generationConfig 
+			genConfig = Map();
+			genConfig.put("temperature",0.0);
+			genConfig.put("thinkingConfig",{"thinkingLevel":"MINIMAL"});
+			requestBody.put("generationConfig",genConfig);
+			//
+			geminiResponse = invokeurl
+			[
+				url :"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + geminiAPIKey
+				type :POST
+				parameters:requestBody.toString()
+				headers:{"Content-Type":"application/json"}
+				detailed:true
+			];
+			//info "geminiResponse: " + geminiResponse;
+			if(geminiResponse.getJSON("responseCode") == 200)
+			{
+				if(geminiResponse.getJSON("responseText").getJSON("candidates").getJSON("content") != null)
+				{
+					geminiOutputText = geminiResponse.getJSON("responseText").getJSON("candidates").getJSON("content").getJSON("parts").getJSON("text");
+					//====================================================================
+					// Clean the Gemini JSON response
+					//====================================================================
+					if(geminiOutputText.contains("```json"))
+					{
+						// Extract only the part between the backticks
+						cleanJson = geminiOutputText.getPrefix("```").getSuffix("```json").trim();
+						// If the above extraction is tricky due to formatting, use this:
+						cleanJson = geminiOutputText.replaceAll("```json","").replaceAll("```","").trim();
+						cleanJson = cleanJson.replaceAll("&","and");
+						cleanJson = cleanJson.remove("\n");
+						//check if its a valid Json
+						try 
+						{
+							cleanText = cleanJson.toMap();
+							proceedToJSONExtractions = "true";
+						}
+						catch (jsonError)
+						{
+							proceedToJSONExtractions = "false";
+							failureLog = "Error Encountered in converting Gemini Response into a JSON list. Error: " + jsonError;
+						}
+					}
+					else
+					{
+						cleanText = geminiOutputText.replaceAll("<[^>]*>","");
+						cleanText = cleanText.replaceAll("&","and");
+						cleanText = cleanText.remove("\n");
+						//check if its a valid Json
+						try 
+						{
+							cleanText = cleanText.toMap();
+							proceedToJSONExtractions = "true";
+						}
+						catch (jsonError)
+						{
+							proceedToJSONExtractions = "false";
+							failureLog = "Error Encountered in converting Gemini Response into a JSON list. Error: " + jsonError;
+						}
+					}
+					//
+					if(proceedToJSONExtractions == "true")
+					{
+						//--> Check and fetched the matches
+						if(!cleanText.getJSON("matches").isEmpty())
+						{
+							//get Category and Sub Category
+							if(cleanText.getJSON("matches").getJSON("category") != null)
+							{
+								responseCategory = cleanText.getJSON("matches").getJSON("category");
+							}
+							if(cleanText.getJSON("matches").getJSON("sub_category") != null)
+							{
+								responseSubCategory = cleanText.getJSON("matches").getJSON("sub_category");
+							}
+							responseDepartmentId = cleanText.getJSON("matches").getJSON("department_id");
+							responsePriority = cleanText.getJSON("matches").getJSON("priority");
+							//Check if there are values
+							if(responseCategory == "" || responseCategory == null || responseCategory == "null" || responseCategory == "No Match Found" && responseSubCategory == "" || responseSubCategory == null || responseSubCategory == "null" || responseSubCategory == "No Match Found")
+							{
+								searchGlobalDoc = true;
+								failureLog = "No Matched Found in both " + departmentName + " Document. <br><br>Reason: " + cleanText.getJSON("match_notes") + "<br><br>Action Needed: Category and Subcategory Mapping Review Needed. We kindly request a double-check of the uploaded " + departmentName + " and Global documents to confirm if the definitions are complete and correctly aligned.";
+							}
+							else
+							{
+								proceedTicketPopulation = true;
+							}
+						}
+						else
+						{
+							info "No Match Found in the " + departmentName + " Doc.";
+							failureLog = "No Matched Found in both " + departmentName + " Document. <br><br>Reason: " + cleanText.getJSON("match_notes") + "<br><br>Action Needed: Category and Subcategory Mapping Review Needed. We kindly request a double-check of the uploaded " + departmentName + " and Global documents to confirm if the definitions are complete and correctly aligned.";
+							searchGlobalDoc = true;
+						}
+					}
+					else
+					{
+						failureLog = "Error Encountered in converting Gemini Response into a JSON list.";
+					}
+				}
+				else
+				{
+					failureLog = "Upon searching matches in the GLobal Store, Gemini returns Empty value in 'Content' variable. ";
+					// Since empty proceed to global
+					searchGlobalDoc = true;
+				}
+			}
+			else
+			{
+				failureLog = "Error in Gemini end in Searching " + departmentName + " Store.";
+				searchGlobalDoc = true;
+			}
+			// 		//====================================================================
+			// 		// Search Matches in Global Doc Store
+			// 		//====================================================================
+			// 		if(searchGlobalDoc == true)
+			// 		{
+			// 			docReference = "Global Doc";
+			// 			//
+			// 			requestBody = Map();
+			// 			requestBody.put("contents",{{"parts":{{"text":promptText}}}});
+			// 			requestBody.put("tools",{{"file_search":{"file_search_store_names":{globalStore}}}});
+			// 			// Construct generationConfig 
+			// 			genConfig = Map();
+			// 			genConfig.put("temperature",0.0);
+			// 			genConfig.put("thinkingConfig",{"thinkingLevel":"MINIMAL"});
+			// 			requestBody.put("generationConfig",genConfig);
+			// 			//
+			// 			geminiResponsev2 = invokeurl
+			// 			[
+			// 				url :"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + geminiAPIKey
+			// 				type :POST
+			// 				parameters:requestBody.toString()
+			// 				headers:{"Content-Type":"application/json"}
+			// 				detailed:true
+			// 			];
+			// 			//info "geminiResponsev2: " + geminiResponsev2;
+			// 			if(geminiResponsev2.getJSON("responseCode") == 200)
+			// 			{
+			// 				if(geminiResponsev2.getJSON("responseText").getJSON("candidates").getJSON("content") != null)
+			// 				{
+			// 					geminiOutputTextV2 = geminiResponsev2.getJSON("responseText").getJSON("candidates").getJSON("content").getJSON("parts").getJSON("text");
+			// 					//====================================================================
+			// 					// Clean the Gemini JSON response
+			// 					//====================================================================
+			// 					if(geminiOutputTextV2.contains("```json"))
+			// 					{
+			// 						// Extract only the part between the backticks
+			// 						cleanJson = geminiOutputTextV2.getPrefix("```").getSuffix("```json").trim();
+			// 						// If the above extraction is tricky due to formatting, use this:
+			// 						cleanJson = geminiOutputTextV2.replaceAll("```json","").replaceAll("```","").trim();
+			// 						cleanJson = cleanJson.replaceAll("&","and");
+			// 						cleanText = cleanJson.toMap();
+			// 					}
+			// 					else
+			// 					{
+			// 						// You can still strip HTML if it's a regular email/thread
+			// 						cleanText = geminiOutputTextV2.replaceAll("<[^>]*>","");
+			// 						cleanText = cleanText.replaceAll("&","and");
+			// 						cleanText = cleanText.toMap();
+			// 					}
+			// 					//info "Global Doc: " + cleanText.getJSON("matches");
+			// 					//--> Check and fetched the matches
+			// 					if(!cleanText.getJSON("matches").isEmpty())
+			// 					{
+			// 						//get Category and Sub Category
+			// 						responseCategory = cleanText.getJSON("matches").getJSON("category");
+			// 						responseSubCategory = cleanText.getJSON("matches").getJSON("sub_category");
+			// 						responseDepartmentId = cleanText.getJSON("matches").getJSON("department_id");
+			// 						responsePriority = cleanText.getJSON("matches").getJSON("priority");
+			// 						//Check if there are values
+			// 						if(responseCategory == null || responseCategory == "" && responseSubCategory == null || responseSubCategory == "")
+			// 						{
+			// 							info "No Match Found in both People Operations and Global Doc.";
+			// 							failureLog = "No Matched Found in both " + departmentName + " Document and Global Document. <br><br>Reason: " + cleanText.getJSON("match_notes") + "<br><br>Action Needed: Category and Subcategory Mapping Review Needed. We kindly request a double-check of the uploaded " + departmentName + " and Global documents to confirm if the definitions are complete and correctly aligned.";
+			// 						}
+			// 						else
+			// 						{
+			// 							//Proceed ticket population
+			// 							proceedTicketPopulation = true;
+			// 						}
+			// 					}
+			// 					else
+			// 					{
+			// 						info "No Match Found in the Global Doc.";
+			// 						failureLog = "No Matched Found in both " + departmentName + " Document and Global Document. <br><br>Reason: " + cleanText.getJSON("match_notes") + "<br><br>Action Needed: Category and Subcategory Mapping Review Needed. We kindly request a double-check of the uploaded " + departmentName + " and Global documents to confirm if the definitions are complete and correctly aligned.";
+			// 					}
+			// 				}
+			// 				else
+			// 				{
+			// 					failureLog = "Upon searching matches in the GLobal Store, Gemini returns Empty value in 'Content' variable. ";
+			// 				}
+			// 			}
+			// 			else
+			// 			{
+			// 				info "Error in Gemini end in Searching in the Global Store.";
+			// 			}
+			// 		}
+			//--> checking Gemini Responses
+			sendmail
+			[
+				from :zoho.adminuserid
+				to :recepient
+				subject :departmentName + ": Check Gemini Response for ticket " + ticketId
+				message :"Reference Doc from: " + docReference + "<br><br> Summarize: <br>" + geminiSummarizeText + "<br><br> Gemini response: <br>" + cleanText + "<br><br> Highest Match: <br>Category: " + responseCategory + "<br>SubCategory: " + responseSubCategory + "<br>DepartmentId: " + responseDepartmentId + "<br>Priority: " + responsePriority
+			]
+			//info "proceedTicketPopulation: " + proceedTicketPopulation;
+			//
+			if(proceedTicketPopulation == true)
+			{
+				info "Proceeding ticket population.";
+				if(responseSubCategory != "" || responseSubCategory != "null" || responseSubCategory != null && responseCategory != "" || responseCategory != "null" || responseCategory != null)
+				{
+					if(!responseSubCategory.contains("No Match Found") && !responseCategory.contains("No Match Found"))
+					{
+						//map cf fields
+						cfFields = Map();
+						cfFields.put("cf_gemini_triggered",true);
+						// Map
+						mapFields = Map();
+						mapFields.put("category",responseCategory);
+						mapFields.put("subCategory",responseSubCategory);
+						mapFields.put("priority",responsePriority);
+						mapFields.put("cf",cfFields);
+						// UPDATE TICKET
+						updateTicket = zoho.desk.update(deskOrgId,"tickets",ticketId,mapFields.toString());
+						// 					//====================================================================
+						// 					// Move the Ticket to the right Dept
+						// 					//====================================================================
+						// 					if(responseDepartmentId != null || responseDepartmentId != "null" || responseDepartmentId != "")
+						// 					{
+						// 						if(currentDepartmentId != responseDepartmentId)
+						// 						{
+						// 							//move ticket to the right Dept
+						// 							moveTicketMap = Map();
+						// 							moveTicketMap.put("departmentId",responseDepartmentId);
+						// 							moveTicket = invokeurl
+						// 							[
+						// 								url :"https://desk.zoho.com/api/v1/tickets/" + ticketId + "/move"
+						// 								type :POST
+						// 								parameters:moveTicketMap.toString()
+						// 								connection:"zdesk_conn"
+						// 							];
+						// 						}
+						// 					}
+					}
+					else
+					{
+						failureLog = "No Matched Found in " + departmentName + " Document. <br><br>Reason: " + cleanText.getJSON("match_notes") + "<br><br>Action Needed: Category and Subcategory Mapping Review Needed. We kindly request a double-check of the uploaded " + departmentName + " and Global documents to confirm if the definitions are complete and correctly aligned.";
+					}
+				}
+				else
+				{
+					info "Gemini Output Response has returned an empty Category or Sub Category.";
+					failureLog = "Gemini Output Response has returned an empty Category or Sub Category. ";
+				}
+			}
+			category = responseCategory;
+			sub_category = responseSubCategory;
+			department_id = responseDepartmentId;
+		}
+		//latestThreadClean
+	}
+	//end the loop if cat and subcat is null
+}
+catch (e)
+{
+	failureLog = e.toString() + "<br><br>Invoke Ticket Details: " + failureLog;
+	info e;
+}
+//===================================================
+// Try Catch for Error notification Handling
+//===================================================
+try 
+{
+	//===================================================
+	// CHECK IF FAILURE LOG IS NOT NULL
+	//===================================================
+	if(!failureLog.isNull())
+	{
+		info "Fail Log updating..";
+		errMsg = failureLog.toString();
+		//===================================================
+		// UPDATE FAILURE LOG FIELD
+		//===================================================
+		failureLogFinal = dateTodayConverted + " - " + errMsg + "\n\n" + failureLogDetails;
+		//
+		updateMap = Map();
+		cfFail = Map();
+		cfFail.put("cf_failure_log",failureLogFinal);
+		updateMap.put("cf",cfFail);
+		invokeurl
+		[
+			url :"https://desk.zoho.com/api/v1/tickets/" + ticketId
+			type :PATCH
+			parameters:updateMap.toString()
+			connection:"zdesk_conn"
+		]
+		//===================================================
+		// Error Message Format
+		//===================================================
+		html = "<html><body style='margin:0;padding:20px;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;'>";
+		html = html + "<div style='max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e6e9ef;border-radius:12px;overflow:hidden;'>";
+		//header bar
+		html = html + "<div style='height:6px;background:#0D4B3B;'></div>";
+		html = html + "<div style='padding:24px 28px 12px 28px;'>";
+		html = html + "<h2 style='margin:0;font-size:20px;font-weight:700;color:#0f172a;'>Workflow Failure Alert [" + dateTodayConverted + "]</h2>";
+		html = html + "<p style='margin:12px 0 0 0;font-size:14px;color:#475569;line-height:1.6;'><strong>Hi Team</strong>,</p>";
+		html = html + "<p style='margin:8px 0 0 0;font-size:14px;color:#475569;line-height:1.6;'>This is to notify you that a Zoho Desk workflow has failed during execution on the following record:</p>";
+		html = html + " </div>";
+		// Details Section
+		html = html + "<div style='margin:0 28px 20px 28px;padding:16px;border:1px solid #e6e9ef;border-radius:10px;background:#fafafa;'>";
+		html = html + " <p style='margin:0 0 12px 0;font-size:14px;font-weight:bold;'>Failure Details</p>";
+		html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Workflow Name: <span style='color:#0f172a;font-weight:bold;'>Identify Category and Sub Category via Gemini Workflow</span></p>";
+		html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Department: <span style='color:#0f172a;font-weight:bold;'>" + departmentName + "</span></p>";
+		html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Ticket ID: <span style='color:#0f172a;font-weight:bold;'>" + ticketId + "</span></p>";
+		html = html + "<p style='margin:6px 0 4px 0;font-size:13px;color:#475569;'>Error Message:</p>";
+		html = html + " <div style='margin-top:2px;padding:10px 12px;background:#f8fafc;border:1px solid #e6e9ef;border-radius:8px;font-family:Consolas,monospace;font-size:12px;line-height:1.5;color:#bd4a55;white-space:pre-wrap;'>" + errMsg + "</div></div>";
+		//Footer
+		html = html + "<div style='padding:0 28px 24px 28px;'>";
+		html = html + "<p style='margin:0 0 8px 0;font-size:14px;color:#475569;line-height:1.6;'>Best regards,<br><strong>Zoho Desk Admin</strong><br>Booth</p>";
+		html = html + "<p style='margin:8px 0 0 0;font-size:12px;color:#94a3b8;line-height:1.5;'>Note: This is an automated message. Please do not reply to this email.</p>";
+		html = html + " </div></div></body></html>";
+		//===================================================
+		// Notify if there are failure log
+		//===================================================
+		sendmail
+		[
+			from :zoho.adminuserid
+			to :recepient
+			subject :departmentName + " Department | Identify Category and Sub Category via Gemini Workflow Failure"
+			message :html
+		]
+	}
+}
+catch (error)
+{
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :recepient
+		subject :departmentName + " Department | Identify Category and Sub Category via Gemini Workflow Failure"
+		message :"Encountered an error in Sending Error Notifications. <br><br> Error Details: " + error
+	]
+}
+try 
+{
+	//==========================================================================================
+	// This will section will check if a ticket has already been assigned to a Team or Assignee
+	// -------------------------------------
+	// By: Lurie
+	//===========================================================================================
+	getTicketDetails = invokeurl
+	[
+		url :"https://desk.zoho.com/api/v1/tickets/" + ticketId
+		type :GET
+		connection:"zdesk_conn"
+	];
+	//--> This is for checking if ticket is already been assigned
+	teamId = getTicketDetails.getJSON("teamId");
+	assigneeId = getTicketDetails.getJSON("assigneeId");
+	disableAssignment = getTicketDetails.getJSON("cf").getJSON("cf_disable_assignment_rule");
+	//===================================================
+	// CHECK IF TICKET HAS ALREADY BEEN ASSIGNED
+	// --> Y : Update Disable Assignment rule field
+	// --> N : No Actions
+	//===================================================
+	updateField = false;
+	info "TSTEST: " + disableAssignment;
+	if(disableAssignment == "false")
+	{
+		// Check if there is already a Assigned Team ID
+		if(teamId != null)
+		{
+			updateField = true;
+		}
+		else
+		{
+			// Check if there is already an Assignee ID
+			if(assigneeId != null)
+			{
+				updateField = true;
+			}
+		}
+		if(updateField == true)
+		{
+			// UPDATE THE DISABLE ASSIGNMENT RULE FIELD
+			// Map
+			updateDisableAssignmentFieldMap = Map();
+			cfupdate = Map();
+			cfupdate.put("cf_disable_assignment_rule",updateField);
+			updateDisableAssignmentFieldMap.put("cf",cfupdate);
+			//Update
+			zoho.desk.update(deskOrgId,"tickets",ticketId,updateDisableAssignmentFieldMap,"zdesk_conn");
+		}
+	}
+	//====================================================================
+	// PROCEED POPULATING THE PARENT AUTOMATIONS IN THE PARENT TICKET 
+	//-------------------------------------------------------
+	// By: Ariane
+	//====================================================================
+	if(category == null || sub_category == null || department_id == null)
+	{
+		errMsg = "Missing category, subcategory, or department";
+		updateMap = Map();
+		cfFail = Map();
+		cfFail.put("cf_failure_log",errMsg);
+		updateMap.put("cf",cfFail);
+		invokeurl
+		[
+			url :"https://desk.zoho.com/api/v1/tickets/" + ticketId
+			type :PATCH
+			parameters:updateMap.toString()
+			connection:"zdesk_conn"
+		]
+		return;
+	}
+	// ---- SEARCH CUSTOM MODULE (POST) ----
+	//info department_id;
+	criteria = "field1=cf_category:" + category + "&field2=cf_sub_category:" + sub_category + "&field3=cf_department_id:" + department_id;
+	searchResult = invokeurl
+	[
+		url :"https://desk.zoho.com/api/v1/cm_parent_ticket_configs/search?=" + criteria
+		type :GET
+		connection:"zdesk_conn"
+	];
+	//info "searchResult: "+searchResult;
+	records = searchResult.get("data");
+	if(records != null)
+	{
+		//====================================================================
+		// VALIDATE IF THE FETCH PARENT CONFIG IS CORRECT (Double Checked)
+		//====================================================================
+		parentConfigAutomationsNum = records.getJSON("cf").getJSON("cf_number_of_automation");
+		parentConfigDeptId = records.getJSON("cf").getJSON("cf_department_id");
+		// clean and fetch Child Config Dept ID
+		if(!parentConfigDeptId.isNull())
+		{
+			parentConfigDepartmentId = parentConfigDeptId.replaceAll(" ","").getSuffix("::");
+		}
+		//
+		if(records.getJSON("cf").getJSON("cf_category") == category && records.getJSON("cf").getJSON("cf_sub_category") == sub_category && parentConfigDepartmentId == department_id)
+		{
+			//====================================================================
+			// Fetch the automations based on the ParentConfigs number of automations
+			// ------------------------------
+			// By: Lurie 
+			//====================================================================
+			//mapping for updating automations
+			payload = Map();
+			cf_payload = Map();
+			configId = records.getJSON("id");
+			cf_payload.put("cf_parent_config_id",configId);
+			indexList = {1,2,3,4,5,6};
+			for each  indx in indexList
+			{
+				actionField = "cf_ticket_automation_" + indx;
+				statusField = "cf_status_automation_trigger_" + indx;
+				//
+				if(indx <= parentConfigAutomationsNum.toLong())
+				{
+					//FETCH FIELD VALUE
+					automationActionName = records.getJSON("cf").getJSON(actionField);
+					automationTriggerStatus = records.getJSON("cf").getJSON(statusField);
+					//
+					cf_payload.put(actionField,automationActionName);
+					cf_payload.put(statusField,automationTriggerStatus);
+				}
+				else
+				{
+					cf_payload.put(actionField,null);
+					cf_payload.put(statusField,null);
+				}
+			}
+			// ====================================================================
+			// ---- APPLY CONFIG TO TICKET ----
+			// By: Ariane
+			//====================================================================
+			// 	cf = records.get("cf");
+			cf = records.getJSON("cf");
+			// 			//info "TEST: "+cf;
+			// 			configId = records.getJSON("id");
+			// 			payload = Map();
+			// 			cf_payload = Map();
+			// 			cf_payload.put("cf_parent_config_id",configId);
+			// 			cf_payload.put("cf_ticket_automation_1",cf.get("cf_ticket_automation_1").trim());
+			// 			cf_payload.put("cf_status_automation_trigger_1",cf.get("cf_status_automation_trigger_1").trim());
+			// 			cf_payload.put("cf_ticket_automation_2",cf.get("cf_ticket_automation_2").trim());
+			// 			cf_payload.put("cf_status_automation_trigger_2",cf.get("cf_status_automation_trigger_2").trim());
+			// 			cf_payload.put("cf_ticket_automation_3",cf.get("cf_ticket_automation_3").trim());
+			// 			cf_payload.put("cf_status_automation_trigger_3",cf.get("cf_status_automation_trigger_3").trim());
+			// 			cf_payload.put("cf_ticket_automation_4",cf.get("cf_ticket_automation_4").trim());
+			// 			cf_payload.put("cf_status_automation_trigger_4",cf.get("cf_status_automation_trigger_4").trim());
+			// 			cf_payload.put("cf_ticket_automation_5",cf.get("cf_ticket_automation_5").trim());
+			// 			cf_payload.put("cf_status_automation_trigger_5",cf.get("cf_status_automation_trigger_5").trim());
+			// 			cf_payload.put("cf_ticket_automation_6",cf.get("cf_ticket_automation_6").trim());
+			// 			cf_payload.put("cf_status_automation_trigger_6",cf.get("cf_status_automation_trigger_6").trim());
+			payload.put("category",category.trim());
+			payload.put("cf",cf_payload);
+			resp = invokeurl
+			[
+				url :"https://desk.zoho.com/api/v1/tickets/" + ticketId
+				type :PATCH
+				parameters:payload.toString()
+				detailed:true
+				connection:"zdesk_conn"
+			];
+			// end	
+		}
+		else
+		{
+			records = null;
+		}
+	}
+	// ---- LAST VALIDATION: NO RECORDS FOUND ----
+	if(records == null || records.size() == 0)
+	{
+		failMsg = "No parent config found for exact match. " + "Category: " + category + " | SubCategory: " + sub_category + " | Department ID: " + department_id;
+		failureLogFinal = dateTodayConverted + " - " + failMsg + "\n\n" + failureLogDetails;
+		payload = Map();
+		cf_payload = Map();
+		cf_payload.put("cf_parent_config_id","");
+		cf_payload.put("cf_ticket_automation_1","");
+		cf_payload.put("cf_status_automation_trigger_1","");
+		cf_payload.put("cf_ticket_automation_2","");
+		cf_payload.put("cf_status_automation_trigger_2","");
+		cf_payload.put("cf_ticket_automation_3","");
+		cf_payload.put("cf_status_automation_trigger_3","");
+		cf_payload.put("cf_ticket_automation_4","");
+		cf_payload.put("cf_status_automation_trigger_4","");
+		cf_payload.put("cf_ticket_automation_5","");
+		cf_payload.put("cf_status_automation_trigger_5","");
+		cf_payload.put("cf_ticket_automation_6","");
+		cf_payload.put("cf_status_automation_trigger_6","");
+		cf_payload.put("cf_failure_log",failureLogFinal);
+		payload.put("cf",cf_payload);
+		invokeurl
+		[
+			url :"https://desk.zoho.com/api/v1/tickets/" + ticketId
+			type :PATCH
+			parameters:payload.toString()
+			connection:"zdesk_conn"
+		]
+		dateTodayConverted = zoho.currenttime.tostring("MMM dd yyyy HH:mm:ss","Asia/Manila");
+		html = "<html><body style='margin:0;padding:20px;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;'>";
+		html = html + "<div style='max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e6e9ef;border-radius:12px;overflow:hidden;'>";
+		//header bar
+		html = html + "<div style='height:6px;background:#0D4B3B;'></div>";
+		html = html + "<div style='padding:24px 28px 12px 28px;'>";
+		html = html + "<h2 style='margin:0;font-size:20px;font-weight:700;color:#0f172a;'>No Parent Configuration Found [" + dateTodayConverted + "]</h2>";
+		html = html + "<p style='margin:12px 0 0 0;font-size:14px;color:#475569;line-height:1.6;'><strong>Hi Team</strong>,</p>";
+		html = html + "<p style='margin:8px 0 0 0;font-size:14px;color:#475569;line-height:1.6;'>This is to notify you that a Zoho Desk workflow has found no exact match during execution on the following record:</p>";
+		html = html + " </div>";
+		// Details Section
+		html = html + "<div style='margin:0 28px 20px 28px;padding:16px;border:1px solid #e6e9ef;border-radius:10px;background:#fafafa;'>";
+		html = html + " <p style='margin:0 0 12px 0;font-size:14px;font-weight:bold;'>Failure Details</p>";
+		html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Workflow Name: <span style='color:#0f172a;font-weight:bold;'>Identify Category and Sub Category via Gemini Workflow in the Populate Parent Configurations Section</span></p>";
+		html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Department: <span style='color:#0f172a;font-weight:bold;'>" + departmentName + "</span></p>";
+		html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Ticket ID: <span style='color:#0f172a;font-weight:bold;'>" + ticketId + "</span></p>";
+		html = html + "<p style='margin:6px 0 4px 0;font-size:13px;color:#475569;'>Error Message:</p>";
+		html = html + " <div style='margin-top:2px;padding:10px 12px;background:#f8fafc;border:1px solid #e6e9ef;border-radius:8px;font-family:Consolas,monospace;font-size:12px;line-height:1.5;color:#bd4a55;white-space:pre-wrap;'>" + failMsg + "</div></div>";
+		//Footer
+		html = html + "<div style='padding:0 28px 24px 28px;'>";
+		html = html + "<p style='margin:0 0 8px 0;font-size:14px;color:#475569;line-height:1.6;'>Best regards,<br><strong>Zoho Desk Admin</strong><br>Booth</p>";
+		html = html + "<p style='margin:8px 0 0 0;font-size:12px;color:#94a3b8;line-height:1.5;'>Note: This is an automated message. Please do not reply to this email.</p>";
+		html = html + " </div></div></body></html>";
+		// Send mail to admin
+		sendmail
+		[
+			from :zoho.adminuserid
+			to :recepient
+			subject :departmentName + " Department | Parent Configuration Not Found"
+			message :html
+		]
+		return;
+	}
+}
+catch (e)
+{
+	//ADD FAILURE LOG IN TICKET MODULE AND STORE THIS TGHERE
+	errMsg = "Workflow Error while updating parent config automations: " + e.toString();
+	dateTodayConverted = zoho.currenttime.tostring("MMM dd yyyy HH:mm:ss","Asia/Manila");
+	//===================================================
+	// UPDATE FAILURE LOG FIELD
+	//===================================================
+	getfailureLogDetails = zoho.desk.getRecordById(deskOrgId,"tickets",ticketId);
+	failureLogDetail = getfailureLogDetails.getJSON("cf").getJSON("cf_failure_log");
+	failureLogFinal = dateTodayConverted + "[Populate Parent Config] - " + errMsg + "\n\n" + failureLogDetail;
+	payload = Map();
+	cf_payload = Map();
+	cf_payload.put("cf_parent_config_id","");
+	cf_payload.put("cf_ticket_automation_1","");
+	cf_payload.put("cf_status_automation_trigger_1","");
+	cf_payload.put("cf_ticket_automation_2","");
+	cf_payload.put("cf_status_automation_trigger_2","");
+	cf_payload.put("cf_ticket_automation_3","");
+	cf_payload.put("cf_status_automation_trigger_3","");
+	cf_payload.put("cf_ticket_automation_4","");
+	cf_payload.put("cf_status_automation_trigger_4","");
+	cf_payload.put("cf_ticket_automation_5","");
+	cf_payload.put("cf_status_automation_trigger_5","");
+	cf_payload.put("cf_ticket_automation_6","");
+	cf_payload.put("cf_status_automation_trigger_6","");
+	cf_payload.put("cf_failure_log",failureLogFinal);
+	payload.put("cf",cf_payload);
+	invokeurl
+	[
+		url :"https://desk.zoho.com/api/v1/tickets/" + ticketId
+		type :PATCH
+		parameters:payload.toString()
+		connection:"zdesk_conn"
+	]
+	recepient = "aryan.receivingemails@gmail.com,ruby.lingo@devtac.com";
+	html = "<html><body style='margin:0;padding:20px;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;'>";
+	html = html + "<div style='max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e6e9ef;border-radius:12px;overflow:hidden;'>";
+	//header bar
+	html = html + "<div style='height:6px;background:#0D4B3B;'></div>";
+	html = html + "<div style='padding:24px 28px 12px 28px;'>";
+	html = html + "<h2 style='margin:0;font-size:20px;font-weight:700;color:#0f172a;'>Workflow Failure Alert [" + dateTodayConverted + "]</h2>";
+	html = html + "<p style='margin:12px 0 0 0;font-size:14px;color:#475569;line-height:1.6;'><strong>Hi Team</strong>,</p>";
+	html = html + "<p style='margin:8px 0 0 0;font-size:14px;color:#475569;line-height:1.6;'>This is to notify you that a Zoho Desk workflow has failed during execution on the following record:</p>";
+	html = html + " </div>";
+	// Details Section
+	html = html + "<div style='margin:0 28px 20px 28px;padding:16px;border:1px solid #e6e9ef;border-radius:10px;background:#fafafa;'>";
+	html = html + " <p style='margin:0 0 12px 0;font-size:14px;font-weight:bold;'>Failure Details</p>";
+	html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Workflow Name: <span style='color:#0f172a;font-weight:bold;'>Identify Category and Sub Category via Gemini Workflow in the Populate Parent Configurations Section</span></p>";
+	html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Department: <span style='color:#0f172a;font-weight:bold;'>" + departmentName + "</span></p>";
+	html = html + "<p style='margin:6px 0;font-size:13px;color:#475569;'>Ticket ID: <span style='color:#0f172a;font-weight:bold;'>" + ticketId + "</span></p>";
+	html = html + "<p style='margin:6px 0 4px 0;font-size:13px;color:#475569;'>Error Message:</p>";
+	html = html + " <div style='margin-top:2px;padding:10px 12px;background:#f8fafc;border:1px solid #e6e9ef;border-radius:8px;font-family:Consolas,monospace;font-size:12px;line-height:1.5;color:#bd4a55;white-space:pre-wrap;'>" + errMsg + "</div></div>";
+	//Footer
+	html = html + "<div style='padding:0 28px 24px 28px;'>";
+	html = html + "<p style='margin:0 0 8px 0;font-size:14px;color:#475569;line-height:1.6;'>Best regards,<br><strong>Zoho Desk Admin</strong><br>Booth</p>";
+	html = html + "<p style='margin:8px 0 0 0;font-size:12px;color:#94a3b8;line-height:1.5;'>Note: This is an automated message. Please do not reply to this email.</p>";
+	html = html + " </div></div></body></html>";
+	// Send mail to admin
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :recepient
+		subject :departmentName + " Department | Workflow Failure"
+		message :html
+	]
+}
