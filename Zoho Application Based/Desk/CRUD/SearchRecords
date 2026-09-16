@@ -16,3 +16,25 @@ searchResult = invokeurl
   connection:"zdesk_conn"
 ];
 info "Child Configs: " + searchResult;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+another way using the search API
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+searchFieldsCompleted = (!(transactionType.isNull() || businessProcess.isNull() || specificConcern.isNull() || mainCategory.isNull()));
+if(searchFieldsCompleted)
+{
+	searchCriteria = Map();
+	searchCriteria.put("field1","cf_transaction_type:" + transactionType);
+	searchCriteria.put("field2","cf_business_process:" + businessProcess);
+	searchCriteria.put("field3","cf_specific_concern:" + specificConcern);
+	searchCriteria.put("field4","cf_main_category:" + mainCategory);
+	searchCriteria.put("field5","cf_campaign:" + departmentID);
+	// Search record in Customer Feedback Matrix
+	searchRecord = invokeurl
+	[
+		url :"https://desk.zoho.com/api/v1/cm_customer_feedback_tagging/search"
+		type :GET
+		parameters:searchCriteria
+		connection:"zdesk_custommodule"
+	];
