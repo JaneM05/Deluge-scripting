@@ -1,0 +1,12 @@
+existingTicketNumber.isEmpty();
+--> checks if empty, will return true or false
+
+By adding this ! --> This reverses the result. 
+--> So from true, it become false
+
+!existingTicketNumber.isEmpty();
+--> this means if the existingTicketNumber.isEmpty() is TRUE, but since there is a !, it will be changed to FALSE.
+
+searchFieldsCompleted = (!(transactionType.isNull() || businessProcess.isNull() || specificConcern.isNull() || mainCategory.isNull()));
+--> if all the fields returns false, the final result will be false and since there is an !, it reverses to TRUE so that it can be use to the if() functionc
+--> if one field returns TRUE, then the final result will be TRUE and since there is an !, it reverses to FALSE
