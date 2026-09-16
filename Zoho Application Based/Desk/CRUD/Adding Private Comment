@@ -1,0 +1,13 @@
+		// Add private comment
+		info " no record found ";
+		commentParameters = Map();
+		commentParameters.put("isPublic","false");
+		commentParameters.put("content","Customer Feedback Matrix lookup was performed using " + transactionType + " (Transaction Type), " + businessProcess + " (Business Process), " + specificConcern + " (Specific Concern), and " + mainCategory + " (Main Category) but no matching record was found. No ticket fields were updated.");
+		privateComment = invokeurl
+		[
+			url :"https://desk.zoho.com/api/v1/tickets/" + ticketID + "/comments"
+			type :POST
+			parameters:commentParameters.toString()
+			connection:"zdesk_custommodule"
+		];
+		info privateComment;
