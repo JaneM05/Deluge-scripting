@@ -1,0 +1,8 @@
+equalsIgnoreCase(specificConcern) --> is a Java String method used to compare two strings while ignoring differences in uppercase and lowercase letters.
+
+example: 
+String specificConcern = "Payment Issue";
+
+if (specificConcern.equalsIgnoreCase("payment issue")) {
+    System.out.println("Match found");
+}
